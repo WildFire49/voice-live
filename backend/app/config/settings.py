@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.1-flash-live-preview"
     gemini_voice: str = "Charon"
     allowed_origins: list[str] = ["http://localhost:3000"]
+    enable_silero_vad: bool = True
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

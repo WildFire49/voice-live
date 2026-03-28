@@ -27,12 +27,19 @@ class PipelineFactory:
             gemini_config = GeminiConfig.from_settings(settings)
 
         llm = create_gemini_service(settings.google_api_key, gemini_config)
-        vad = create_vad_analyzer()
+
+        user_params = LLMUserAggregatorParams()
+        if settings.enable_silero_vad:
+            vad = create_vad_analyzer()
+            user_params = LLMUserAggregatorParams(vad_analyzer=vad)
+            logger.info("Silero VAD enabled")
+        else:
+            logger.info("Silero VAD disabled — relying on Gemini server-side VAD")
 
         context = LLMContext()
         user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
             context,
-            user_params=LLMUserAggregatorParams(vad_analyzer=vad),
+            user_params=user_params,
         )
 
         pipeline = Pipeline(
