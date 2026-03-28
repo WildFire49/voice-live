@@ -39,4 +39,4 @@ app.include_router(create_ws_router(session_manager, settings))
 async def connect():
     """RTVI client calls this to get a WebSocket URL."""
     session_id = str(uuid4())
-    return {"url": f"ws://localhost:{settings.port}/ws/{session_id}"}
+    return {"wsUrl": f"ws://localhost:{settings.port}/ws/{session_id}"}

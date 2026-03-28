@@ -1,10 +1,12 @@
-import VoiceProvider from "@/providers/RTVIProvider";
-import VoiceChat from "@/components/voice-chat/VoiceChat";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const VoiceApp = dynamic(
+  () => import("@/components/voice-chat/VoiceApp"),
+  { ssr: false }
+);
 
 export default function Home() {
-  return (
-    <VoiceProvider>
-      <VoiceChat />
-    </VoiceProvider>
-  );
+  return <VoiceApp />;
 }

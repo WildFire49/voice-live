@@ -1,30 +1,37 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useRTVIClient, useRTVIClientEvent } from "@pipecat-ai/client-react";
-import { RTVIEvent, TransportState } from "@pipecat-ai/client-js";
+import { useCallback, useRef, useState } from "react";
+import { usePipecatClient, useRTVIClientEvent } from "@pipecat-ai/client-react";
+import { RTVIEvent, RTVIMessage, TransportStateEnum } from "@pipecat-ai/client-js";
 import { VoiceState } from "@/types";
+import { SESSION_CONFIG } from "@/lib/constants";
 
 export function useVoiceState() {
-  const client = useRTVIClient();
+  const client = usePipecatClient();
   const [voiceState, setVoiceState] = useState<VoiceState>(VoiceState.IDLE);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isConnectedRef = useRef(false);
 
-  useRTVIClientEvent(RTVIEvent.TransportStateChanged, (state: TransportState) => {
+  useRTVIClientEvent(RTVIEvent.TransportStateChanged, (state: string) => {
     switch (state) {
-      case "connecting":
-      case "authenticating":
+      case TransportStateEnum.CONNECTING:
+      case TransportStateEnum.AUTHENTICATING:
         setVoiceState(VoiceState.CONNECTING);
         break;
-      case "connected":
-      case "ready":
+      case TransportStateEnum.CONNECTED:
+      case TransportStateEnum.READY:
+        isConnectedRef.current = true;
         setIsConnected(true);
         setVoiceState(VoiceState.LISTENING);
         break;
-      case "disconnected":
+      case TransportStateEnum.DISCONNECTED:
+        isConnectedRef.current = false;
         setIsConnected(false);
         setVoiceState(VoiceState.IDLE);
+        break;
+      case TransportStateEnum.ERROR:
+        setVoiceState(VoiceState.ERROR);
         break;
     }
   });
@@ -34,11 +41,11 @@ export function useVoiceState() {
   });
 
   useRTVIClientEvent(RTVIEvent.BotStoppedSpeaking, () => {
-    if (isConnected) setVoiceState(VoiceState.LISTENING);
+    if (isConnectedRef.current) setVoiceState(VoiceState.LISTENING);
   });
 
-  useRTVIClientEvent(RTVIEvent.Error, (err: Error) => {
-    setError(err.message);
+  useRTVIClientEvent(RTVIEvent.Error, (msg: RTVIMessage) => {
+    setError(String(msg.data ?? "Connection error"));
     setVoiceState(VoiceState.ERROR);
   });
 
@@ -46,7 +53,10 @@ export function useVoiceState() {
     if (!client) return;
     setError(null);
     try {
-      await client.connect();
+      const connectUrl = `${SESSION_CONFIG.baseUrl}${SESSION_CONFIG.connectEndpoint}`;
+      await client.startBotAndConnect({
+        endpoint: connectUrl,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Connection failed");
       setVoiceState(VoiceState.ERROR);
