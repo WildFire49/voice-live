@@ -1,15 +1,36 @@
 import chromadb
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from loguru import logger
+
+ARCTIC_MODEL = "Snowflake/snowflake-arctic-embed-m"
 
 
 class ChromaService:
     """Queries ChromaDB for few-shot examples and business rules."""
 
-    def __init__(self, host: str, port: int, examples_collection: str, rules_collection: str):
-        self._client = chromadb.HttpClient(host=host, port=port)
-        self._examples = self._client.get_collection(examples_collection)
-        self._rules = self._client.get_collection(rules_collection)
-        logger.info(f"ChromaDB connected: {host}:{port}")
+    def __init__(
+        self,
+        examples_collection: str,
+        rules_collection: str,
+        local_path: str = "",
+        host: str = "",
+        port: int = 8000,
+    ):
+        arctic_ef = SentenceTransformerEmbeddingFunction(model_name=ARCTIC_MODEL)
+
+        if local_path:
+            self._client = chromadb.PersistentClient(path=local_path)
+            logger.info(f"ChromaDB local: {local_path} (Arctic embeddings)")
+        else:
+            self._client = chromadb.HttpClient(host=host, port=port)
+            logger.info(f"ChromaDB remote: {host}:{port}")
+
+        self._examples = self._client.get_collection(
+            examples_collection, embedding_function=arctic_ef,
+        )
+        self._rules = self._client.get_collection(
+            rules_collection, embedding_function=arctic_ef,
+        )
 
     async def search_examples(self, question: str, n_results: int = 5) -> str:
         """Search few-shot SQL examples relevant to the question."""
@@ -28,7 +49,7 @@ class ChromaService:
         return "\n---\n".join(docs)
 
     async def search_all(self, question: str, n_results: int = 5) -> str:
-        """Search both examples and rules in parallel, return combined context."""
+        """Search both examples and rules, return combined context."""
         examples = await self.search_examples(question, n_results)
         rules = await self.search_rules(question, n_results)
         return f"## Few-Shot SQL Examples\n{examples}\n\n## Business Rules\n{rules}"

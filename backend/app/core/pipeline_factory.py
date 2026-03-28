@@ -41,10 +41,11 @@ class PipelineFactory:
             from app.services.sql_executor import SQLExecutor
 
             chroma = ChromaService(
-                host=settings.chroma_host,
-                port=settings.chroma_port,
                 examples_collection=settings.chroma_examples_collection,
                 rules_collection=settings.chroma_rules_collection,
+                local_path=settings.chroma_local_path,
+                host=settings.chroma_host,
+                port=settings.chroma_port,
             )
             sql_executor = SQLExecutor(
                 api_url=settings.sql_api_url,

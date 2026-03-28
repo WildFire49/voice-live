@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # RAG Agent config
     chroma_host: str = ""
     chroma_port: int = 8000
+    chroma_local_path: str = ""
     chroma_examples_collection: str = ""
     chroma_rules_collection: str = ""
     sql_api_url: str = ""
@@ -21,7 +22,8 @@ class Settings(BaseSettings):
 
     @property
     def agent_tools_enabled(self) -> bool:
-        return bool(self.chroma_host and self.sql_api_url)
+        has_chroma = bool(self.chroma_host or self.chroma_local_path)
+        return bool(has_chroma and self.sql_api_url)
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
