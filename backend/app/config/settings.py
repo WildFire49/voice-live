@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     sql_api_key: str = ""
     sql_connection_id: str = ""
 
+    # Knowledge Graph DB (for schema extraction)
+    kg_db_host: str = "139.84.152.147"
+    kg_db_name: str = "mifix_ai_uat"
+    kg_db_user: str = "vaishakh"
+    kg_db_password: str = ""
+
     @property
     def agent_tools_enabled(self) -> bool:
         has_chroma = bool(self.chroma_host or self.chroma_local_path)
