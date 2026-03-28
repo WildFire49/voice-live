@@ -36,24 +36,50 @@ class PipelineFactory:
 
         # Register function call handlers if agent mode
         if settings.agent_tools_enabled:
+            from app.retriever import RetrieverAgent
+            from app.retriever.searchers.chroma_searcher import (
+                ChromaSearcher,
+                create_chroma_client,
+            )
+            from app.retriever.strategies.sql_strategy import SQLRetrieverStrategy
             from app.services.agent_tools import register_tools
-            from app.services.chroma_service import ChromaService
             from app.services.sql_executor import SQLExecutor
 
-            chroma = ChromaService(
-                examples_collection=settings.chroma_examples_collection,
-                rules_collection=settings.chroma_rules_collection,
+            # Create shared ChromaDB client
+            chroma_client = create_chroma_client(
                 local_path=settings.chroma_local_path,
                 host=settings.chroma_host,
                 port=settings.chroma_port,
             )
+
+            # Create searchers for each collection
+            examples_searcher = ChromaSearcher(
+                settings.chroma_examples_collection, chroma_client,
+            )
+            rules_searcher = ChromaSearcher(
+                settings.chroma_rules_collection, chroma_client,
+            )
+            schema_searcher = None
+            if settings.chroma_schema_collection:
+                schema_searcher = ChromaSearcher(
+                    settings.chroma_schema_collection, chroma_client,
+                )
+
+            # Assemble retriever with SQL strategy
+            strategy = SQLRetrieverStrategy(
+                examples_searcher=examples_searcher,
+                rules_searcher=rules_searcher,
+                schema_searcher=schema_searcher,
+            )
+            retriever = RetrieverAgent(strategy)
+
             sql_executor = SQLExecutor(
                 api_url=settings.sql_api_url,
                 api_key=settings.sql_api_key,
                 connection_id=settings.sql_connection_id,
             )
-            register_tools(llm, chroma, sql_executor)
-            logger.info("Agent mode: RAG tools registered")
+            register_tools(llm, retriever, sql_executor)
+            logger.info("Agent mode: RetrieverAgent with SQLRetrieverStrategy registered")
 
         user_params = LLMUserAggregatorParams()
         if settings.enable_silero_vad:

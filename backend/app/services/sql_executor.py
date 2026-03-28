@@ -26,14 +26,25 @@ class SQLExecutor:
                     "execution_source": "duckdb",
                 },
             )
-            response.raise_for_status()
+
+            # Capture full error body before raising
+            if response.status_code >= 400:
+                error_body = response.text
+                logger.error(
+                    f"SQL API error {response.status_code}: {error_body}"
+                )
+                return (
+                    f"The query failed with error: {error_body}. "
+                    "Please check the SQL and try again with corrected syntax."
+                )
+
             data = response.json()
 
         # Format results for voice — keep it concise
         if isinstance(data, dict) and "data" in data:
             rows = data["data"]
             if not rows:
-                return "Query returned no results."
+                return "The query ran successfully but returned no results."
             # Limit to 10 rows for voice readability
             preview = rows[:10]
             result = f"Query returned {len(rows)} rows. "

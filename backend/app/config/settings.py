@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     chroma_local_path: str = ""
     chroma_examples_collection: str = ""
     chroma_rules_collection: str = ""
+    chroma_schema_collection: str = ""
     sql_api_url: str = ""
     sql_api_key: str = ""
     sql_connection_id: str = ""
