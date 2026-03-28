@@ -10,6 +10,19 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["http://localhost:3000"]
     enable_silero_vad: bool = True
 
+    # RAG Agent config
+    chroma_host: str = ""
+    chroma_port: int = 8000
+    chroma_examples_collection: str = ""
+    chroma_rules_collection: str = ""
+    sql_api_url: str = ""
+    sql_api_key: str = ""
+    sql_connection_id: str = ""
+
+    @property
+    def agent_tools_enabled(self) -> bool:
+        return bool(self.chroma_host and self.sql_api_url)
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

@@ -26,7 +26,33 @@ class PipelineFactory:
         if gemini_config is None:
             gemini_config = GeminiConfig.from_settings(settings)
 
-        llm = create_gemini_service(settings.google_api_key, gemini_config)
+        # Build tools schema if agent mode is enabled
+        tools = None
+        if settings.agent_tools_enabled:
+            from app.services.agent_tools import TOOL_SCHEMAS
+            tools = TOOL_SCHEMAS
+
+        llm = create_gemini_service(settings.google_api_key, gemini_config, tools=tools)
+
+        # Register function call handlers if agent mode
+        if settings.agent_tools_enabled:
+            from app.services.agent_tools import register_tools
+            from app.services.chroma_service import ChromaService
+            from app.services.sql_executor import SQLExecutor
+
+            chroma = ChromaService(
+                host=settings.chroma_host,
+                port=settings.chroma_port,
+                examples_collection=settings.chroma_examples_collection,
+                rules_collection=settings.chroma_rules_collection,
+            )
+            sql_executor = SQLExecutor(
+                api_url=settings.sql_api_url,
+                api_key=settings.sql_api_key,
+                connection_id=settings.sql_connection_id,
+            )
+            register_tools(llm, chroma, sql_executor)
+            logger.info("Agent mode: RAG tools registered")
 
         user_params = LLMUserAggregatorParams()
         if settings.enable_silero_vad:
